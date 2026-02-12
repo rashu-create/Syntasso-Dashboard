@@ -23,41 +23,82 @@ DISPLAY_COLS = [
 
 
 # =========================
-# STYLING
+# STYLING (FIXED FOR DARK THEME)
 # =========================
 st.markdown(
     """
 <style>
-    :root { --primary: #2563EB; --bg-card: #ffffff; --text-main: #1F2937; --text-sub: #6B7280; }
-    .main-header { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 20px; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; }
+    /* ---- Page header ---- */
+    .main-header {
+        font-size: 28px;
+        font-weight: 800;
+        color: #E5E7EB;              /* visible on dark background */
+        margin-bottom: 18px;
+        border-bottom: 2px solid #374151;
+        padding-bottom: 10px;
+    }
 
-    /* Metric Cards */
+    /* ---- Metric Cards ---- */
     .metric-row { display: flex; gap: 15px; margin-bottom: 18px; }
     .metric-card {
-        flex: 1; background: white; padding: 18px; border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border-left: 5px solid var(--primary); text-align: center;
+        flex: 1; background: #ffffff; padding: 18px; border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.20);
+        border-left: 5px solid #2563EB; text-align: center;
     }
     .metric-val { font-size: 32px; font-weight: 800; color: #111827; }
-    .metric-lbl { font-size: 13px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px; }
+    .metric-lbl { font-size: 13px; font-weight: 700; color: #4B5563; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px; }
 
-    /* Filter Panel */
+    /* ---- Filter Panel ---- */
     .filter-panel {
-        background: white; padding: 16px; border-radius: 12px; margin-bottom: 16px;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); border: 1px solid #E5E7EB;
+        background: rgba(255,255,255,0.06);
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
     }
-    .filter-title { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 10px; }
+    .filter-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #E5E7EB;              /* visible on dark background */
+        margin-bottom: 10px;
+    }
 
-    /* Tables */
+    /* ---- Tables (DARK, readable) ---- */
     .table-container {
-        overflow-x: auto; overflow-y: hidden; border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #E5E7EB; margin-top: 0px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.12);
+        margin-top: 8px;
+        background: #0B1220;
     }
-    .styled-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; min-width: 1100px; }
-    .styled-table thead tr { background-color: #1F2937; color: #ffffff; text-align: left; }
-    .styled-table th, .styled-table td { padding: 10px 12px; border-bottom: 1px solid #dddddd; white-space: nowrap; }
-    .styled-table tbody tr:nth-of-type(even) { background-color: #f9fafb; }
-    .styled-table tbody tr:hover { background-color: #f3f4f6; }
+    .styled-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        min-width: 1100px;
+    }
+    .styled-table thead tr {
+        background-color: #111827;
+        color: #FFFFFF;
+        text-align: left;
+    }
+    .styled-table th, .styled-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        white-space: nowrap;
+    }
+    .styled-table tbody tr:nth-of-type(odd)  { background-color: #0B1220; }
+    .styled-table tbody tr:nth-of-type(even) { background-color: #0F172A; }
+    .styled-table tbody tr:hover { background-color: #111827; }
+    .styled-table tbody td { color: #E5E7EB; }       /* readable text */
+    .styled-table a { color: #60A5FA; text-decoration: none; }
+    .styled-table a:hover { text-decoration: underline; }
+
+    /* Make Streamlit widget labels readable in dark theme */
+    .stMarkdown, .stTextLabel, label, p, span { color: #E5E7EB; }
+
 </style>
 """,
     unsafe_allow_html=True
@@ -165,7 +206,6 @@ def load_data(file_path: str) -> pd.DataFrame:
     if "activity_date" in df.columns:
         df = make_sessions(df, "uid", "activity_date", threshold_minutes=30)
     else:
-        # Fallback if no dates (should not happen with your file)
         df["uniq_sess"] = df["uid"].astype(str) + "_1"
 
     # Categories & page labels
@@ -240,7 +280,6 @@ def plot_sankey_detailed(df: pd.DataFrame) -> go.Figure:
                     line=dict(color="black", width=0.5),
                     label=nodes,
                     color=colors,
-                    # Remove user counts from node hover
                     hovertemplate="<b>%{label}</b><extra></extra>",
                 ),
                 link=dict(
@@ -248,7 +287,6 @@ def plot_sankey_detailed(df: pd.DataFrame) -> go.Figure:
                     target=links["tgt"].map(node_map),
                     value=links["val"],
                     color="rgba(200, 200, 200, 0.3)",
-                    # Correct transition volume (source -> target)
                     hovertemplate="<b>From:</b> %{source.label}<br><b>To:</b> %{target.label}<br><b>Transitions:</b> %{value}<extra></extra>",
                 ),
             )
@@ -282,7 +320,7 @@ def plot_dropoff_fancy(df: pd.DataFrame) -> go.Figure:
 
 def page_intelligence_table_html(df: pd.DataFrame) -> str:
     if "url" not in df.columns or "uniq_sess" not in df.columns:
-        return "<div style='padding:10px'>Missing required columns (url / uniq_sess).</div>"
+        return "<div style='padding:10px;color:#E5E7EB;'>Missing required columns (url / uniq_sess).</div>"
 
     d = df.sort_values(["uniq_sess", "activity_date"]).copy()
     landing = d.groupby("uniq_sess", as_index=False).first()
