@@ -12,6 +12,11 @@ import streamlit as st
 # =========================
 st.set_page_config(page_title="Developer Journey Intelligence", layout="wide")
 
+st.markdown(
+    "<meta name='color-scheme' content='dark'>",
+    unsafe_allow_html=True
+)
+
 # Use the exact CSV filename as it exists in your GitHub repo:
 DATA_FILE = "Syntasso Website Data (1).csv"
 
