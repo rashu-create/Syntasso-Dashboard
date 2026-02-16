@@ -385,30 +385,81 @@ except Exception as e:
 st.markdown("<div class='filter-panel'>", unsafe_allow_html=True)
 st.markdown("<div class='filter-title'>🔍 Data Filters</div>", unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 
+# --- Date filter (NEW) ---
 with c1:
+    if "activity_date" in df_all.columns:
+        _d = df_all["activity_date"].dropna()
+        if not _d.empty:
+            min_d = _d.min().date()
+            max_d = _d.max().date()
+            sel_date_range = st.date_input(
+                "Date range",
+                value=(min_d, max_d),
+                min_value=min_d,
+                max_value=max_d,
+            )
+        else:
+            sel_date_range = None
+    else:
+        sel_date_range = None
+
+with c2:
     countries = sorted(df_all["org_hq_country"].dropna().unique()) if "org_hq_country" in df_all.columns else []
     sel_countries = st.multiselect("Country", options=countries)
 
-with c2:
+with c3:
     industries = sorted(df_all["industry"].dropna().unique()) if "industry" in df_all.columns else []
     sel_industries = st.multiselect("Industry", options=industries)
 
-with c3:
-    sizes = sorted(df_all["normalised_employee_range"].dropna().unique()) if "normalised_employee_range" in df_all.columns else []
+# --- Employee size filter (FIXED: resolve overlaps) ---
+with c4:
+    size_candidates = [
+        "normalised_employee_range",
+        "employee_range",
+        "employee_size",
+        "company_size",
+        "org_employee_range",
+        "employee_count_range",
+    ]
+    size_cols = [c for c in size_candidates if c in df_all.columns]
+
+    if size_cols:
+        # pick first non-null value across overlapping fields
+        df_all["_emp_size"] = df_all[size_cols].bfill(axis=1).iloc[:, 0]
+        sizes = sorted(df_all["_emp_size"].dropna().unique())
+    else:
+        df_all["_emp_size"] = pd.NA
+        sizes = []
+
     sel_sizes = st.multiselect("Size", options=sizes)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
 # Apply filters
 t = df_all.copy()
+
+# Date range filter (NEW)
+if sel_date_range and "activity_date" in t.columns:
+    # streamlit can return a single date or a (start, end) tuple
+    if isinstance(sel_date_range, (list, tuple)) and len(sel_date_range) == 2:
+        start_date, end_date = sel_date_range
+    else:
+        start_date = end_date = sel_date_range
+
+    start_ts = pd.to_datetime(start_date)
+    end_ts = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(microseconds=1)
+
+    t = t[t["activity_date"].notna()]
+    t = t[(t["activity_date"] >= start_ts) & (t["activity_date"] <= end_ts)]
+
 if sel_countries and "org_hq_country" in t.columns:
     t = t[t["org_hq_country"].isin(sel_countries)]
 if sel_industries and "industry" in t.columns:
     t = t[t["industry"].isin(sel_industries)]
-if sel_sizes and "normalised_employee_range" in t.columns:
-    t = t[t["normalised_employee_range"].isin(sel_sizes)]
+if sel_sizes and "_emp_size" in t.columns:
+    t = t[t["_emp_size"].isin(sel_sizes)]
 
 if t.empty:
     st.warning("No data matches the selected filters.")
